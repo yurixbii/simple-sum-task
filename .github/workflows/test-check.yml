@@ -1,0 +1,38 @@
+name: Test and Update Main
+
+on:
+  push:
+    branches: [ source ]
+
+jobs:
+  test-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          ref: source
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Push to main without solution file
+        if: success()
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          git checkout ${{ github.sha }} -- .
+          git rm --cached sum.js 2>/dev/null || true
+          rm -f sum.js
+          git add -A
+          git diff --staged --quiet || (git commit -m "Update main from source (solution removed)" && git push origin main)
